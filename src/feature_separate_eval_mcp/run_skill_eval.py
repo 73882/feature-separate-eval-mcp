@@ -521,7 +521,7 @@ def _patent_client(settings):
         config = PatentConfig.from_mapping(settings)
     except PatentConfigurationError as exc:
         raise EvalError(f"PatSnap 配置不安全或不完整: {exc}") from exc
-    _log(f"PatSnap 端点已通过 HTTPS 与主机白名单校验: {config.base_url}")
+    _log(f"PatSnap 端点已通过协议与主机白名单校验: {config.base_url}")
     return PatentClient(config)
 
 
@@ -599,7 +599,7 @@ def _cmd_run(args):
             )
         )
         _log(
-            "Judge 端点已通过 HTTPS 与主机白名单校验: "
+            "Judge 端点已通过协议与主机白名单校验: "
             f"{judge.config.api_url}"
         )
     except JudgeConfigurationError as exc:

@@ -24,7 +24,7 @@ import time
 
 import requests
 
-from .network_policy import validate_https_endpoint
+from .network_policy import allow_insecure_http, validate_endpoint
 
 
 JUDGE_RULES_VERSION = "judge_rules_v5"
@@ -102,11 +102,14 @@ class JudgeConfig:
 
     @classmethod
     def from_mapping(cls, settings, model=None):
-        api_url = validate_https_endpoint(
+        api_url = validate_endpoint(
             settings.get("CLAIM_DECOMPOSITION_JUDGE_API_URL"),
             settings.get("CLAIM_DECOMPOSITION_JUDGE_ALLOWED_HOSTS"),
             "CLAIM_DECOMPOSITION_JUDGE_API_URL",
             JudgeConfigurationError,
+            allow_http=allow_insecure_http(
+                settings.get("CC_EVAL_ALLOW_INSECURE_HTTP")
+            ),
         )
         api_token = str(
             settings.get("CLAIM_DECOMPOSITION_JUDGE_API_TOKEN") or ""
@@ -737,7 +740,6 @@ def proxy_score(dimensions):
         * 100,
         2,
     )
-
 
 
 

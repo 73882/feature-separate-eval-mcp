@@ -5,7 +5,7 @@ import re
 
 import requests
 
-from .vendor.network_policy import validate_https_endpoint
+from .vendor.network_policy import allow_insecure_http, validate_endpoint
 
 
 class PatentConfigurationError(RuntimeError):
@@ -20,15 +20,16 @@ class PatentConfig:
 
     @classmethod
     def from_mapping(cls, settings):
-        base_url = validate_https_endpoint(
+        base_url = validate_endpoint(
             settings.get("PATSNAP_API_BASE"),
             settings.get("PATSNAP_ALLOWED_HOSTS"),
             "PATSNAP_API_BASE",
             PatentConfigurationError,
+            allow_http=allow_insecure_http(
+                settings.get("CC_EVAL_ALLOW_INSECURE_HTTP")
+            ),
         )
         api_key = str(settings.get("PATSNAP_KEY") or "").strip()
-        if not api_key:
-            raise PatentConfigurationError("PATSNAP_KEY is required")
         return cls(base_url=base_url, api_key=api_key)
 
 
@@ -42,13 +43,13 @@ class PatentClient:
     def query_patent_fields(self, fields, pns, lang="cn"):
         if fields != ["CLMS"]:
             raise ValueError("this client permits only the CLMS field")
+        headers = {"Content-Type": "application/json"}
+        if self.config.api_key:
+            headers["PATSNAP_KEY"] = self.config.api_key
         response = self.session.post(
             f"{self.config.base_url}/api/patent/fields/query",
             json={"fields": ["CLMS"], "pns": list(pns), "lang": lang},
-            headers={
-                "Content-Type": "application/json",
-                "PATSNAP_KEY": self.config.api_key,
-            },
+            headers=headers,
             timeout=self.config.timeout,
             allow_redirects=False,
             verify=True,

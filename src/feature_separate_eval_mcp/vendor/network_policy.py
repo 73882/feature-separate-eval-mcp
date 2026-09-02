@@ -3,14 +3,31 @@
 from urllib.parse import urlsplit
 
 
-def validate_https_endpoint(value, allowed_hosts, label, error_type=ValueError):
-    """Return a normalized HTTPS endpoint after an exact host allowlist check."""
+def allow_insecure_http(value):
+    """Return whether the explicit internal-network HTTP opt-in is enabled."""
+    return str(value or "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def validate_endpoint(
+    value,
+    allowed_hosts,
+    label,
+    error_type=ValueError,
+    allow_http=False,
+):
+    """Return a normalized endpoint after scheme and exact-host checks."""
     endpoint = str(value or "").strip()
     if not endpoint:
         raise error_type(f"{label} is required")
     parsed = urlsplit(endpoint)
-    if parsed.scheme.lower() != "https" or not parsed.hostname:
-        raise error_type(f"{label} must be an HTTPS URL")
+    scheme = parsed.scheme.lower()
+    if not parsed.hostname or scheme not in {"http", "https"}:
+        raise error_type(f"{label} must be an HTTP(S) URL")
+    if scheme == "http" and not allow_http:
+        raise error_type(
+            f"{label} uses HTTP; set CC_EVAL_ALLOW_INSECURE_HTTP=true "
+            "only for a trusted internal endpoint"
+        )
     if parsed.username or parsed.password or parsed.fragment:
         raise error_type(f"{label} must not contain credentials or a fragment")
 

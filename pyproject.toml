@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "feature-separate-eval-mcp"
-version = "0.1.0"
+version = "0.1.1"
 description = "MCP server for evaluating one patent feature-separation result"
 readme = "README.md"
 requires-python = ">=3.10"

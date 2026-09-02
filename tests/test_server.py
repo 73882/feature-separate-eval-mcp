@@ -6,11 +6,14 @@ import pytest
 
 from feature_separate_eval_mcp import ledger
 from feature_separate_eval_mcp import run_skill_eval
+from feature_separate_eval_mcp.patent_client import PatentConfig
 from feature_separate_eval_mcp.server import (
     feature_separate_eval_check,
     feature_separate_eval_run,
     feature_separate_eval_status,
 )
+from feature_separate_eval_mcp.vendor.judge import JudgeConfig
+from feature_separate_eval_mcp.vendor.network_policy import validate_endpoint
 
 
 @pytest.fixture(autouse=True)
@@ -87,3 +90,39 @@ def test_report_stdout_is_resolved_at_call_time():
         run_skill_eval._print_report(item, [], [], [])
 
     assert "拆解评测" in output.getvalue()
+
+
+def test_http_endpoint_requires_explicit_internal_opt_in():
+    with pytest.raises(ValueError, match="CC_EVAL_ALLOW_INSECURE_HTTP"):
+        validate_endpoint(
+            "http://internal.example/api",
+            "internal.example",
+            "TEST_URL",
+        )
+
+    assert validate_endpoint(
+        "http://internal.example/api",
+        "internal.example",
+        "TEST_URL",
+        allow_http=True,
+    ) == "http://internal.example/api"
+
+
+def test_old_internal_gateway_shape_is_supported_without_patsnap_key():
+    settings = {
+        "CC_EVAL_ALLOW_INSECURE_HTTP": "true",
+        "PATSNAP_API_BASE": "http://patent.internal.example",
+        "PATSNAP_ALLOWED_HOSTS": "patent.internal.example",
+        "CLAIM_DECOMPOSITION_JUDGE_API_URL": "http://judge.internal.example/api",
+        "CLAIM_DECOMPOSITION_JUDGE_ALLOWED_HOSTS": "judge.internal.example",
+        "CLAIM_DECOMPOSITION_JUDGE_API_TOKEN": "redacted",
+        "CLAIM_DECOMPOSITION_JUDGE_TOKEN_PREFIX": "Bearer ",
+    }
+
+    patent = PatentConfig.from_mapping(settings)
+    judge = JudgeConfig.from_mapping(settings)
+
+    assert patent.api_key == ""
+    assert patent.base_url == "http://patent.internal.example"
+    assert judge.api_url == "http://judge.internal.example/api"
+    assert judge.token_prefix == "Bearer"
